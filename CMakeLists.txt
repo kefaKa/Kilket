@@ -22,3 +22,24 @@ target_include_directories(kilket_lib PUBLIC src/include ${CMAKE_CURRENT_BINARY_
 # main executables
 add_executable(kilket_core src/main.cpp)
 target_link_libraries(kilket_core PRIVATE kilket_lib)
+
+
+if(BUILD_TESTING)
+    # tests
+    add_executable(test_filewatcher tests/unit/test_filewatcher.cpp)
+    target_link_libraries(test_filewatcher PRIVATE kilket_lib)
+    target_include_directories(test_filewatcher PRIVATE tests)
+
+    add_executable(test_task_runner tests/unit/test_task_runner.cpp)
+    target_link_libraries(test_task_runner PRIVATE kilket_lib)
+    target_include_directories(test_task_runner PRIVATE tests)
+
+    add_executable(test_session_logger tests/unit/test_session_logger.cpp)
+    target_link_libraries(test_session_logger PRIVATE kilket_lib)
+    target_include_directories(test_session_logger PRIVATE tests)
+
+    add_executable(test_config_manager tests/unit/test_config_manager.cpp)
+    target_link_libraries(test_config_manager PRIVATE kilket_lib)
+    target_include_directories(test_config_manager PRIVATE tests)
+    target_include_directories(test_config_manager PUBLIC tests/unit ${CMAKE_CURRENT_BINARY_DIR})
+    target_compile_definitions(test_config_manager PRIVATE KILKET_TESTING)
