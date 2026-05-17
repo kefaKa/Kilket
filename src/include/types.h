@@ -57,3 +57,60 @@ namespace kilket
                 return raw_callback(e);
             return (ptr->*handler)(e);
         }
+
+        bool isNull() const
+        {
+            return ptr == nullptr && handler == nullptr && raw_callback == nullptr;
+        }
+    };
+
+    // A registered watch target: what to build, what paths feed it, and
+    // what to run afterward depending on the exit code.
+    struct Task
+    {
+        // Internal, always-unique identifier — not user-facing. Usually the
+        // absolute path of the working directory the task was created in.
+        std::string id = "";
+        // User-facing label; may be duplicated across tasks. Defaults to the
+        // basename of the working directory.
+        std::string name = "";
+        int watching_depth = 3;
+
+        std::vector<std::string> commands = {};
+        std::vector<std::string> file_paths = {};
+        std::vector<std::string> dir_paths = {};
+
+        std::vector<std::string> on_success = {};
+        std::vector<std::string> on_failure = {};
+
+        std::vector<std::string> ignored_patterns = {};
+        std::vector<std::string> ignored_paths = {};
+
+        bool isActive = false;
+        bool isRunning = false;
+
+        bool isNull() const
+        {
+            return id.empty() && name.empty() && commands.empty() && file_paths.empty() && dir_paths.empty() &&
+                   on_success.empty() && on_failure.empty() && !isActive && !isRunning && watching_depth == 3 &&
+                   ignored_paths.empty() && ignored_patterns.empty();
+        }
+    };
+
+    // Outcome of running a task's build (and hook) commands once.
+    struct ExecutionResult
+    {
+        int id;
+        int exit_code;
+        WatchEvent _event;
+        std::string log;
+        std::vector<std::string> build_commands;
+
+        ExecutionResult() : id(-1), exit_code(-1), log(""), build_commands({}) {}
+
+        ExecutionResult(int run_id, int code, WatchEvent event = WatchEvent(), std::string output = "",
+                        std::vector<std::string> commands = {})
+            : id(run_id), exit_code(code), _event(std::move(event)), log(std::move(output)),
+              build_commands(std::move(commands)) {}
+    };
+}
