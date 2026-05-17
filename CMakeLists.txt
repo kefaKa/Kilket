@@ -43,3 +43,29 @@ if(BUILD_TESTING)
     target_include_directories(test_config_manager PRIVATE tests)
     target_include_directories(test_config_manager PUBLIC tests/unit ${CMAKE_CURRENT_BINARY_DIR})
     target_compile_definitions(test_config_manager PRIVATE KILKET_TESTING)
+
+    add_executable(test_kilket_core tests/integration/test_kilket_core.cpp)
+    target_link_libraries(test_kilket_core PRIVATE kilket_lib)
+    target_include_directories(test_kilket_core PRIVATE tests)
+
+    enable_testing()
+    add_test(NAME kilket_filewatcher_tests COMMAND test_filewatcher)
+    add_test(NAME kilket_task_runner_tests COMMAND test_task_runner)
+    add_test(NAME kilket_session_logger_tests COMMAND test_session_logger)
+    add_test(NAME kilket_config_manager_tests COMMAND test_config_manager)
+    add_test(NAME kilket_core_tests COMMAND test_kilket_core)
+endif()
+
+add_executable(kilket cli/src/main.cpp
+                            cli/src/commands/add.cpp
+                            cli/src/commands/run.cpp
+                            cli/src/commands/init.cpp
+                            cli/src/commands/list.cpp
+                            cli/src/commands/remove.cpp
+                            cli/src/commands/set.cpp
+                            cli/src/commands/check.cpp)
+target_link_libraries(kilket PRIVATE kilket_lib)
+target_include_directories(kilket PRIVATE cli/src)
+target_include_directories(kilket PRIVATE cli/src ${CMAKE_CURRENT_BINARY_DIR})
+
+install(TARGETS kilket DESTINATION bin)
