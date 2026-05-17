@@ -1,0 +1,40 @@
+# Prerequisites
+*.d
+
+compile_commands.json
+diagram.md
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+bin/*
+assets/*.txt
+.vscode/
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+*.so.*
+
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
