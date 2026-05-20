@@ -227,3 +227,116 @@ namespace kilket
                     ErrorCode::TASK_ALREADY_EXISTS, "Error: task already exists, use update_task to update it"));
             }
         }
+
+        json json_task = TRY(convert_task_to_json(task), void);
+        config_obj["tasks"].push_back(json_task);
+
+        return Result<void>::Ok();
+    }
+
+    Result<void> ConfigManager::update_task(const Task &task)
+    {
+        for (auto it = config_obj["tasks"].begin(); it != config_obj["tasks"].end(); it++)
+        {
+            string id = it->at("working_directory");
+            if (id == task.id)
+            {
+                json json_task = TRY(convert_task_to_json(task), void);
+                *it = json_task;
+                isflushed = false;
+                flush();
+                return Result<void>::Ok();
+            }
+        }
+        return Result<void>::Err(FWError::make(ErrorCode::TASK_NOT_FOUND, "Error: task not found"));
+    }
+
+    Result<void> ConfigManager::purge_config()
+    {
+        auto config_path = get_config_path();
+        fstream file(config_path, ios::out | ios::trunc);
+        if(!file.is_open())
+        {
+            return Result<void>::Err(FWError::make(ErrorCode::SYS_IO_FAILED, "Error: opening config file failed"));
+        }
+        file.close();
+        config_obj = json::object();
+        return Result<void>::Ok();
+    }
+
+    Result<void> ConfigManager::log_task_inbatch(const vector<Task> &tasks)
+    {
+        for (auto &task : tasks)
+        {
+            TEST(log_task(task));
+        }
+        return Result<void>::Ok();
+    }
+
+    Result<void> ConfigManager::delete_task(const Task &task)
+    {
+        for (auto it = config_obj["tasks"].begin(); it != config_obj["tasks"].end(); it++)
+        {
+            string id = it->at("working_directory");
+            if (id == task.id)
+            {
+                config_obj["tasks"].erase(it);
+                return Result<void>::Ok();
+            }
+        }
+        return Result<void>::Err(FWError::make(ErrorCode::TASK_NOT_FOUND, "Error: task not found"));
+    }
+
+    Result<vector<Task>> ConfigManager::get_tasks()
+    {
+        vector<Task> tasks;
+        for (auto it = config_obj["tasks"].begin(); it != config_obj["tasks"].end(); it++)
+        {
+            Task task_out;
+            task_out.name = it->at("task_name");
+            task_out.id = it->at("working_directory");
+            task_out.commands = it->at("commands");
+            task_out.file_paths = it->at("file_paths");
+            task_out.dir_paths = it->at("dir_paths");
+            task_out.on_success = it->at("on_success");
+            task_out.on_failure = it->at("on_failure");
+            task_out.ignored_paths = it->at("ignored_paths");
+            task_out.ignored_patterns = it->at("ignored_patterns");
+            task_out.isActive = it->at("isActive");
+            task_out.watching_depth = it->at("watching_depth");
+            tasks.push_back(task_out);
+        }
+        return Result<vector<Task>>::Ok(tasks);
+    }
+
+    Result<void> ConfigManager::flush()
+    {
+        if (isflushed)
+        {
+            return Result<void>::Ok();
+        }
+
+        auto config_path = get_config_path();
+        if (fs::exists(config_path))
+        {
+            auto now = std::chrono::system_clock::now();
+            auto ts = std::format("{:%Y-%m-%dT%H:%M:%SZ}", now);
+
+            config_obj["last_modified"] = ts;
+
+            fstream file(config_path, ios::in | ios::out | ios::trunc);
+            file << config_obj.dump(4) << endl;
+            if (file.fail())
+            {
+                return Result<void>::Err(FWError::make(
+                    ErrorCode::SYS_IO_FAILED, "Error: writing to config file failed"));
+            }
+            isflushed = true;
+            file.close();
+            return Result<void>::Ok();
+        } else {
+            return Result<void>::Err(FWError::make(
+                ErrorCode::SYS_IO_FAILED, "Error: config file not found"));
+        }
+    }
+}
