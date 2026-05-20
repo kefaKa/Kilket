@@ -109,3 +109,121 @@ namespace kilket
         Task task_out;
         task_out.name = json_task.at("task_name");
         task_out.id = json_task.at("working_directory");
+
+        vector<string> commands_out;
+        for (auto &cmd : json_task.at("commands"))
+        {
+            commands_out.push_back(cmd);
+        }
+        task_out.commands = commands_out;
+
+        vector<string> file_paths_out;
+        for (auto &cmd : json_task.at("file_paths"))
+        {
+            file_paths_out.push_back(cmd);
+        }
+        task_out.file_paths = file_paths_out;
+
+        vector<string> dir_paths_out;
+        for (auto &cmd : json_task.at("dir_paths"))
+        {
+            dir_paths_out.push_back(cmd);
+        }
+        task_out.dir_paths = dir_paths_out;
+
+        vector<string> on_success_out;
+        for (auto &cmd : json_task.at("on_success"))
+        {
+            on_success_out.push_back(cmd);
+        }
+        task_out.on_success = on_success_out;
+
+        vector<string> on_failure_out;
+        for (auto &cmd : json_task.at("on_failure"))
+        {
+            on_failure_out.push_back(cmd);
+        }
+        task_out.on_failure = on_failure_out;
+
+        vector<string> ignored_paths_out;
+        for (auto &path : json_task.at("ignored_paths"))
+        {
+            ignored_paths_out.push_back(path);
+        }
+        task_out.ignored_paths = ignored_paths_out;
+
+        vector<string> ignored_patterns_out;
+        for (auto &pattern : json_task.at("ignored_patterns"))
+        {
+            ignored_patterns_out.push_back(pattern);
+        }
+        task_out.ignored_patterns = ignored_patterns_out;
+
+        task_out.isActive = json_task.at("isActive");
+        task_out.watching_depth = json_task.at("watching_depth");
+        return Result<Task>::Ok(task_out);
+    }
+
+    Result<json> ConfigManager::convert_task_to_json(const Task &task)
+    {
+        json json_task = json::object();
+        json_task["task_name"] = task.name;
+        json_task["working_directory"] = task.id;
+        json_task["commands"] = json::array();
+        for (auto &cmd : task.commands)
+        {
+            json_task["commands"].push_back(cmd);
+        }
+        json_task["file_paths"] = json::array();
+        for (auto &path : task.file_paths)
+        {
+            json_task["file_paths"].push_back(path);
+        }
+
+        json_task["dir_paths"] = json::array();
+        for (auto &path : task.dir_paths)
+        {
+            json_task["dir_paths"].push_back(path);
+        }
+
+        json_task["on_success"] = json::array();
+        for (auto &cmd : task.on_success)
+        {
+            json_task["on_success"].push_back(cmd);
+        }
+        json_task["on_failure"] = json::array();
+        for (auto &cmd : task.on_failure)
+        {
+            json_task["on_failure"].push_back(cmd);
+        }
+        for (auto &path : task.ignored_paths)
+        {
+            json_task["ignored_paths"].push_back(path);
+        }
+        for (auto &pattern : task.ignored_patterns)
+        {
+            json_task["ignored_patterns"].push_back(pattern);
+        }
+        json_task["isActive"] = task.isActive;
+        json_task["watching_depth"] = task.watching_depth;
+        return Result<json>::Ok(json_task);
+    }
+
+    Result<void> ConfigManager::log_task(const Task &task)
+    {
+        // check if task is empty
+        if (task.isNull())
+        {
+            return Result<void>::Err(FWError::make(
+                ErrorCode::EMPTY_VALUE, "Error: task is empty"));
+        }
+        // check if task already exists
+        for (auto &t : config_obj["tasks"])
+        {
+            Task existing_task = TRY(convert_json_to_task(t), void);
+            if (existing_task.id == task.id)
+            {
+                return Result<void>::Err(FWError::make(
+                    ErrorCode::TASK_ALREADY_EXISTS, "Error: task already exists, use update_task to update it"));
+            }
+        }
