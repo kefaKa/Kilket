@@ -28,3 +28,13 @@ namespace kilket
             ~ConfigManager();
             nlohmann::json getjson() const { return config_obj; }
             bool is_flushed() const { return isflushed; }
+
+            Result<void> log_task(const Task &task);
+            Result<void> update_task(const Task &task);
+            Result<void> purge_config();
+            Result<void> log_task_inbatch(const std::vector<Task> &tasks);
+            Result<void> delete_task(const Task &task);
+            Result<std::vector<Task>> get_tasks();
+            Result<void> flush();
+    };
+}
