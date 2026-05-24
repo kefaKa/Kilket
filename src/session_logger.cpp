@@ -117,3 +117,59 @@ namespace kilket
             std::tm tm_buf;
             localtime_r(&now_time, &tm_buf); // POSIX, thread-safe
             ss << std::put_time(&tm_buf, "%Y-%m-%dT%H:%M:%S");
+
+            event["timestamp"] = ss.str();
+
+            session["session_log"].push_back(event);
+
+            FW_LOG("[DEBUG] An execution result logged successfully. ✓");
+        }
+        catch (const std::bad_alloc &e)
+        {
+            return Result<void>::Err(FWError::make(
+                ErrorCode::SYS_ALLOC_FAILED, "Error: bad alloc error caught. ✗"));
+        }
+        return Result<void>::Ok();
+}
+
+    Result<void> SessionLogger::stop()
+    {
+        if (!is_running)
+        {
+            return Result<void>::Ok(); // idempotent
+        }
+
+        if (!file.is_open())
+        {
+            return Result<void>::Err(FWError::make(ErrorCode::SYS_IO_FAILED, "Error: couldn't open session logger file. ✗"));
+        }
+
+        if (!flushed)
+        {
+            try
+            {
+                file << session.dump(4) << endl;
+            }
+            catch (const std::bad_alloc &e)
+            {
+                return Result<void>::Err(FWError::make(
+                    ErrorCode::SYS_ALLOC_FAILED, "Error: allocating memory for session log failed. ✗"));
+            }
+            if (file.fail())
+            {
+                return Result<void>::Err(FWError::make(
+                    ErrorCode::SYS_IO_FAILED, "Error: writing to session log failed. ✗"));
+            }
+            file.close();
+            if (file.fail())
+            {
+                return Result<void>::Err(FWError::make(
+                    ErrorCode::SYS_IO_FAILED, "Error: closing session log failed. ✗"));
+            }
+            is_running = false;
+            flushed = true;
+        }
+        FW_LOG("[DEBUG] Log session stopped successfully. ✓");
+        return Result<void>::Ok();
+    }
+}
