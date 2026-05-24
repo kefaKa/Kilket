@@ -96,3 +96,105 @@ UTEST_F(ConfigManagerFixture, log_task_twice)
     EXPECT_TRUE(utest_fixture->cm->log_task(*utest_fixture->t).isOk());
     EXPECT_TRUE(utest_fixture->cm->log_task(*utest_fixture->t).isErr());
 }
+
+UTEST_F(ConfigManagerFixture, log_task_inbatch)
+{
+    vector<Task> tasks;
+    tasks.push_back(*utest_fixture->t);
+    tasks.push_back(*utest_fixture->t2);
+    auto c = utest_fixture->cm->log_task_inbatch(tasks);
+    EXPECT_TRUE(c.isOk());
+}
+
+
+// --------------------------------------------------------------------------------------------
+// delete task
+// --------------------------------------------------------------------------------------------
+
+UTEST_F(ConfigManagerFixture, delete_task)
+{
+    auto c = utest_fixture->cm->log_task(*utest_fixture->t);
+    ASSERT_TRUE(c.isOk());
+
+    auto c2 = utest_fixture->cm->delete_task(*utest_fixture->t);
+    EXPECT_TRUE(c2.isOk());
+}
+
+
+// --------------------------------------------------------------------------------------------
+// update task
+// --------------------------------------------------------------------------------------------
+
+UTEST_F(ConfigManagerFixture, update_task)
+{
+    auto c = utest_fixture->cm->log_task(*utest_fixture->t);
+    ASSERT_TRUE(c.isOk());
+
+    auto c2 = utest_fixture->cm->update_task(*utest_fixture->t3);
+    EXPECT_TRUE(c2.isOk());
+    if(c2.isErr())
+    {
+        cout << c2.getErrMessage() << endl;
+    }
+}
+
+
+// --------------------------------------------------------------------------------------------
+// flush
+// --------------------------------------------------------------------------------------------
+
+
+UTEST_F(ConfigManagerFixture, flush)
+{
+    vector<Task> tasks;
+    tasks.push_back(*utest_fixture->t);
+    tasks.push_back(*utest_fixture->t2);
+    ASSERT_TRUE(utest_fixture->cm->log_task_inbatch(tasks).isOk());
+    auto f = utest_fixture->cm->flush();
+    EXPECT_TRUE(f.isOk());
+    if(f.isErr())
+    {
+        cout << f.unwrapErr().message << "--------------------------------------------------------------------------------" << endl;
+    }
+
+    json test_json = utest_fixture->cm->getjson();
+    ifstream file("/tmp/cm_test/config.json");
+    json content = json::parse(file);
+    EXPECT_EQ(test_json.size(), content.size());
+}
+
+
+// --------------------------------------------------------------------------------------------
+// purge config
+// --------------------------------------------------------------------------------------------
+
+UTEST_F(ConfigManagerFixture, purge_config)
+{
+    auto c = utest_fixture->cm->log_task(*utest_fixture->t);
+    ASSERT_TRUE(c.isOk());
+    auto c2 = utest_fixture->cm->purge_config();
+    EXPECT_TRUE(c2.isOk());
+
+    auto config_path = "/tmp/cm_test/config.json";
+    EXPECT_TRUE(fs::file_size(config_path) == 0);
+}
+
+// --------------------------------------------------------------------------------------------
+// get tasks
+// --------------------------------------------------------------------------------------------
+
+UTEST_F(ConfigManagerFixture, get_tasks)
+{
+    vector<Task> tasks;
+    tasks.push_back(*utest_fixture->t);
+    tasks.push_back(*utest_fixture->t2);
+    ASSERT_TRUE(utest_fixture->cm->log_task_inbatch(tasks).isOk());
+
+    auto r = utest_fixture->cm->get_tasks();
+    EXPECT_TRUE(r.isOk());
+    vector<Task> tasks2 = r.unwrap();
+    EXPECT_EQ(tasks.size(), tasks2.size());
+}
+
+
+UTEST_MAIN()
