@@ -8,3 +8,10 @@ namespace kilket
     // ---------------------------------------------------------------------------
     // ConfigManagerTest
     // ---------------------------------------------------------------------------
+
+    class ConfigManagerTest
+    {
+    public:
+        static nlohmann::json &get_config(ConfigManager *cm) { return cm->config_obj; }
+    };
+}
