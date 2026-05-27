@@ -211,3 +211,228 @@ UTEST_F(TaskRunnerFixture, add_on_success_empty)
 // ---------------------------------------------------------------------------
 // DeleteOnSuccess
 // ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, delete_on_success)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_on_success("ls").isOk());
+    EXPECT_TRUE(utest_fixture->tr->delete_on_success("ls").isOk());
+}
+UTEST_F(TaskRunnerFixture, delete_on_success_twice)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_on_success("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->delete_on_success("ls").isOk());
+    EXPECT_TRUE(utest_fixture->tr->delete_on_success("ls").isErr());
+}
+UTEST_F(TaskRunnerFixture, delete_on_success_empty)
+{
+    EXPECT_TRUE(utest_fixture->tr->delete_on_success("").isErr());
+}
+
+// ---------------------------------------------------------------------------
+// AddOnFailure
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, add_on_failure)
+{
+    EXPECT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+}
+UTEST_F(TaskRunnerFixture, add_on_failure_twice)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    EXPECT_TRUE(utest_fixture->tr->add_on_failure("ls").isErr());
+}
+UTEST_F(TaskRunnerFixture, add_on_failure_empty)
+{
+    EXPECT_TRUE(utest_fixture->tr->add_on_failure("").isErr());
+}
+
+// ---------------------------------------------------------------------------
+// DeleteOnFailure
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, delete_on_failure)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    EXPECT_TRUE(utest_fixture->tr->delete_on_failure("ls").isOk());
+}
+UTEST_F(TaskRunnerFixture, delete_on_failure_twice)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->delete_on_failure("ls").isOk());
+    EXPECT_TRUE(utest_fixture->tr->delete_on_failure("ls").isErr());
+}
+UTEST_F(TaskRunnerFixture, delete_on_failure_empty)
+{
+    EXPECT_TRUE(utest_fixture->tr->delete_on_failure("").isErr());
+}
+
+// ---------------------------------------------------------------------------
+// AddCallback
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, add_callback_member_function)
+{
+    WatchCallback cb = {utest_fixture->tr, &TaskRunner::execute};
+    EXPECT_TRUE(utest_fixture->tr->add_callback(cb).isOk());
+}
+UTEST_F(TaskRunnerFixture, add_callback_raw_function)
+{
+    EXPECT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+}
+UTEST_F(TaskRunnerFixture, add_callback_twice)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isErr());
+}
+UTEST_F(TaskRunnerFixture, add_callback_empty)
+{
+    EXPECT_TRUE(utest_fixture->tr->add_callback(WatchCallback()).isErr());
+}
+UTEST_F(TaskRunnerFixture, add_callback_multiple_callbacks)
+{
+    EXPECT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb3).isOk());
+}
+
+// ---------------------------------------------------------------------------
+// DeleteCallback
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, delete_callback)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->tr->delete_callback(utest_fixture->cb).isOk());
+}
+UTEST_F(TaskRunnerFixture, delete_callback_twice)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->tr->delete_callback(utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->tr->delete_callback(utest_fixture->cb).isErr());
+}
+UTEST_F(TaskRunnerFixture, delete_callback_empty)
+{
+    EXPECT_TRUE(utest_fixture->tr->delete_callback(WatchCallback()).isErr());
+}
+
+// ---------------------------------------------------------------------------
+// Ignored Path/ Ignored Pattern
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, ignored_path)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    ASSERT_TRUE(utest_fixture->tr->add_ignored_path("/tmp/tr_test/tr_test_file.txt").isOk());
+    EXPECT_TRUE(utest_fixture->tr->isIgnored("/tmp/tr_test/tr_test_file.txt"));
+}
+
+UTEST_F(TaskRunnerFixture, ignored_pattern)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_ignored_pattern("*.txt").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    EXPECT_TRUE(utest_fixture->tr->isIgnored("*.txt"));
+}
+
+UTEST_F(TaskRunnerFixture, remove_ignored)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    ASSERT_TRUE(utest_fixture->tr->add_ignored_path("/tmp/tr_test/tr_test_file.txt").isOk());
+    ASSERT_TRUE(utest_fixture->tr->isIgnored("/tmp/tr_test/tr_test_file.txt"));
+    ASSERT_TRUE(utest_fixture->tr->remove_ignored_path("/tmp/tr_test/tr_test_file.txt").isOk());
+    EXPECT_FALSE(utest_fixture->tr->isIgnored("/tmp/tr_test/tr_test_file.txt"));
+
+    ASSERT_TRUE(utest_fixture->tr->add_ignored_pattern("*.txt").isOk());
+    ASSERT_TRUE(utest_fixture->tr->isIgnored("*.txt"));
+    ASSERT_TRUE(utest_fixture->tr->remove_ignored_pattern("*.txt").isOk());
+    EXPECT_FALSE(utest_fixture->tr->isIgnored("*.txt"));
+}
+
+
+// ---------------------------------------------------------------------------
+// Execute
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, execute)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_command("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test_file.txt").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_success("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->tr->start().isOk());
+    WatchEvent e(2, "file", "/tmp/tr_test_file.txt", 0);
+    auto r = utest_fixture->tr->execute(e);
+    EXPECT_TRUE(r.isOk());
+}
+UTEST_F(TaskRunnerFixture, execute_empty)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_command("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test_file.txt").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_success("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->tr->execute(WatchEvent()).isErr());
+}
+
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, start)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_command("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test_file.txt").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_success("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->tr->start().isOk());
+}
+UTEST_F(TaskRunnerFixture, start_twice)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_command("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test_file.txt").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_success("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->tr->start().isOk());
+    EXPECT_TRUE(utest_fixture->tr->start().isOk());// idempotent
+}
+
+// ---------------------------------------------------------------------------
+// Stop
+// ---------------------------------------------------------------------------
+
+UTEST_F(TaskRunnerFixture, stop)
+{
+    ASSERT_TRUE(utest_fixture->tr->add_command("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test").isOk());
+    ofstream("/tmp/tr_test_file.txt").close();
+    ASSERT_TRUE(utest_fixture->tr->add_path("/tmp/tr_test_file.txt").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_success("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_on_failure("ls").isOk());
+    ASSERT_TRUE(utest_fixture->tr->add_callback(utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->tr->start().isOk());
+    auto r = utest_fixture->tr->stop();
+    EXPECT_TRUE(r.isOk());
+    if(r.isErr())
+    {
+        cerr << r.unwrapErr().message << endl;
+    }
+}
+UTEST_F(TaskRunnerFixture, stop_without_start)
+{
+    EXPECT_TRUE(utest_fixture->tr->stop().isOk()); // idempotent
+}
+
+UTEST_MAIN()
