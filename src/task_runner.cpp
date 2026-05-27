@@ -185,3 +185,189 @@ Result<void> TaskRunner::remove_ignored_pattern(const string &pattern) {
       return Result<void>::Ok();
     }
   }
+
+  return Result<void>::Err(FWError::make(ErrorCode::VALUE_NOT_FOUND,
+                                         "Error: ignored pattern not found"));
+}
+
+Result<void> TaskRunner::add_command(const string &command) {
+  // check if command is empty
+  if (command.empty()) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::EMPTY_VALUE, "Error: command is empty"));
+  }
+
+  // check if command already exists
+  for (auto &cmd : task.commands) {
+    if (cmd == command) {
+      return Result<void>::Err(
+          FWError::make(ErrorCode::COMMAND_ALREADY_EXISTS,
+                        "Error: command already exists ✗"));
+    }
+  }
+
+  task.commands.push_back(command);
+  return Result<void>::Ok();
+}
+
+Result<void> TaskRunner::delete_command(const string &command) {
+  for (auto it = task.commands.begin(); it != task.commands.end(); it++) {
+    if (*it == command) {
+      task.commands.erase(it);
+      return Result<void>::Ok();
+    }
+  }
+
+  return Result<void>::Err(
+      FWError::make(ErrorCode::COMMAND_NOT_FOUND, "Error: command not found"));
+}
+
+bool TaskRunner::check_path_existence(const string &path) {
+  for (auto &p : task.file_paths) {
+    if (p == path) {
+      return true;
+    }
+  }
+  for (auto &p : task.dir_paths) {
+    if (p == path) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Result<void> TaskRunner::add_path(const string &path) {
+  if (check_path_existence(path))
+    return Result<void>::Ok(); // idempotent
+  if (!fs::exists(path)) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::PATH_NOT_FOUND,
+                      "Error: provided path " + path + " does not exist! ✗ \n // use the `kilket remove --path <path>` command to remove it from the task"));
+  }
+  if (isIgnored(path)) {
+    FW_LOG("[DEBUG] Path " + path + " matches ignored paths and patterns.");
+    return Result<void>::Ok();
+  }
+
+  TEST(add_path_internal(path, task.watching_depth, 0));
+  if (fs::is_directory(path)) {
+    task.dir_paths.push_back(path);
+    FW_VERBOSE("[KILKET] Adding " + path +
+               "'s children to task runner completed. ✓");
+  } else
+    task.file_paths.push_back(path);
+  FW_VERBOSE("[KILKET] Adding path " + path + " to task runner completed. ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> TaskRunner::add_path_internal(const string &path, int max_depth,
+                                           int current_depth) {
+  if (check_path_existence(path))
+    return Result<void>::Ok(); // idempotent
+  // if path is directory add each files inside it iteratively
+  if (isIgnored(path)) {
+    FW_LOG("[DEBUG] Path " + path + " matches ignored paths and patterns.");
+    FW_LOG("[DEBUG] Adding Path " + path + " to filewatcher failed. ✗");
+    return Result<void>::Ok();
+  }
+
+  if (fs::is_directory(path)) {
+    FW_LOG("[DEBUG] Path " + path +
+           " is a directory adding child files recursively...");
+    for (auto &entry : fs::directory_iterator(path)) {
+      if (isIgnored(entry.path().string())) {
+        FW_LOG("[DEBUG] Path " + entry.path().string() +
+               " matches ignored patterns.");
+        FW_LOG("[DEBUG] Adding Path " + entry.path().string() +
+               " to task failed. ✗");
+        continue;
+      }
+
+      if (entry.is_regular_file()) {
+        FW_LOG("[DEBUG] Adding path " + entry.path().string() +
+               " to filewatcher...");
+        FW_LOG("[DEBUG] Checking if resolved file path " +
+               entry.path().string() +
+               " matches ignored paths and patterns ...");
+
+        resolved_files.push_back(entry.path().string());
+        watcher->add_path(entry.path().string());
+
+        FW_LOG("[DEBUG] Adding path " + entry.path().string() +
+               " to task completed. ✓");
+      } else if (entry.is_directory()) {
+        if (max_depth > current_depth) {
+          resolved_files.push_back(entry.path().string());
+          TEST(add_path_internal(entry.path().string(), max_depth,
+                                 current_depth + 1));
+        } else {
+          FW_LOG("[DEBUG] Path " + entry.path().string() +
+                 " is a directory. But max_depth=" + to_string(max_depth) +
+                 " have been reached. Child files won't be watched.");
+        }
+      }
+    }
+  } else if (!fs::is_directory(path)) {
+    FW_LOG("[DEBUG] Path " + path + " is a file. Adding to task...");
+    resolved_files.push_back(path);
+    watcher->add_path(path);
+  }
+  return Result<void>::Ok();
+}
+
+Result<void> TaskRunner::delete_path(const string &path) {
+  if (!fs::exists(path)) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::PATH_NOT_FOUND,
+                      "Error: provided path " + path + " does not exist! ✗"));
+  }
+
+  if (!fs::is_directory(path)) {
+    for (auto it = task.file_paths.begin(); it != task.file_paths.end(); it++) {
+      if (*it == path) {
+        task.file_paths.erase(it);
+        return Result<void>::Ok();
+      }
+    }
+  } else {
+    for (auto it = task.dir_paths.begin(); it != task.dir_paths.end(); it++) {
+      if (*it == path) {
+        task.dir_paths.erase(it);
+        return Result<void>::Ok();
+      }
+    }
+  }
+  TEST(watcher->remove_path(path));
+  return Result<void>::Err(
+      FWError::make(ErrorCode::PATH_NOT_FOUND, "Error: path not found"));
+}
+
+Result<void> TaskRunner::add_on_success(const string &command) {
+  // check if command is empty
+  if (command.empty()) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::EMPTY_VALUE, "Error: command is empty"));
+  }
+
+  // check if command already exists
+  for (auto it = task.on_success.begin(); it != task.on_success.end(); it++) {
+    if (*it == command) {
+      return Result<void>::Err(FWError::make(ErrorCode::COMMAND_ALREADY_EXISTS,
+                                             "Error: command already exists"));
+    }
+  }
+  task.on_success.push_back(command);
+  return Result<void>::Ok();
+}
+
+Result<void> TaskRunner::delete_on_success(const string &command) {
+  for (auto it = task.on_success.begin(); it != task.on_success.end(); it++) {
+    if (*it == command) {
+      task.on_success.erase(it);
+      return Result<void>::Ok();
+    }
+  }
+
+  return Result<void>::Err(
+      FWError::make(ErrorCode::COMMAND_NOT_FOUND, "Error: command not found"));
+}
