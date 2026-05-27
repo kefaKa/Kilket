@@ -42,3 +42,42 @@ namespace kilket
         std::string get_task_id() const { return task.id; }
         Task get_task() const { return task; }
         std::vector<std::string> get_resolved_files() const { return resolved_files; }
+
+
+        bool isIgnored(const std::string &path);
+
+        bool is_active() const { return task.isActive; }
+        void activate() { task.isActive = true; }
+        void deactivate() { task.isActive = false; }
+        bool is_running() const { return task.isRunning; }
+        Result<void> set_depth(int num);
+
+        Result<void> change_task_name(const std::string &task_name);
+        Result<void> change_working_directory(const std::string &working_directory);
+        Result<void> add_command(const std::string &command);
+        Result<void> delete_command(const std::string &command);
+
+        Result<void> add_on_success(const std::string &command);
+        Result<void> delete_on_success(const std::string &command);
+
+        Result<void> add_on_failure(const std::string &command);
+        Result<void> delete_on_failure(const std::string &command);
+
+        Result<void> add_path(const std::string &path);
+        Result<void> delete_path(const std::string &path);
+
+        Result<void> add_ignored_path(const std::string &path);
+        Result<void> add_ignored_pattern(const std::string &pattern);
+        Result<void> remove_ignored_path(const std::string &path);
+        Result<void> remove_ignored_pattern(const std::string &pattern);
+
+        Result<void> add_callback(const WatchCallback &callback);
+        Result<void> delete_callback(const WatchCallback &callback);
+
+        Result<std::vector<std::string>> get_watch_list();
+
+        Result<void> execute(const WatchEvent &e);
+        Result<void> start();
+        Result<void> stop();
+    };
+}
