@@ -196,3 +196,103 @@ Result<void> FileWatcher::unlink_event(uint32_t event_mask,
 Result<void> FileWatcher::event_loop(int timeout) {
   auto last_dispatch = std::chrono::steady_clock::now();
   const auto debounce_window = std::chrono::milliseconds(300);
+
+  FW_LOG("[DEBUG] Event loop started. ✓");
+  while (watching) {
+    int ready = poll(poll_targets, poll_target_count, timeout);
+
+    if (ready == -1) {
+      if (errno == EINTR)
+        continue;
+      return Result<void>::Err(FWError::make(ErrorCode::SYS_POLL_FAILED,
+                                             "Error: polling error. ✗"));
+    }
+
+    if (ready < 0)
+      continue;
+
+    if (poll_targets[0].revents & POLLIN) {
+      auto now = std::chrono::steady_clock::now();
+      if (now - last_dispatch < debounce_window)
+        continue;
+      last_dispatch = now;
+
+      FW_LOG("[DEBUG] POLLIN received. ✓");
+      WatchEvent event;
+      vector<WatchCallback> callbacks_to_run;
+      {
+        lock_guard<mutex> lock(registry_mutex);
+
+        vector<int> watched_descriptors;
+        for (const auto &[wd, path] : watch_registry) {
+          watched_descriptors.push_back(wd);
+          FW_LOG("[DEBUG] Pushing event on path " + path +
+                 " to read_next_event. ✓");
+        }
+        event = TRY(read_next_event(poll_targets[0].fd, watched_descriptors,
+                                    watch_registry.size()),
+                    void);
+        callbacks_to_run = event_callbacks[event.event_mask];
+      }
+      for (auto &cb : callbacks_to_run) {
+        FW_LOG("[DEBUG] Invoking callback for event " +
+               to_string(event.event_mask) + " ...");
+        TEST(cb.invoke(event));
+        FW_LOG("[DEBUG] Callback executed. ✓");
+      }
+    }
+  }
+  return Result<void>::Ok();
+}
+
+Result<void> FileWatcher::start(int timeout) {
+  FW_LOG("[DEBUG] Starting file watcher...");
+  if (timeout < 10) {
+    timeout = 10;
+  }
+
+  if (watching) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::FILEWATCHER_ALREADY_RUNNING,
+                      "Error: File watcher already running. ✗"));
+  }
+  try {
+    FW_LOG("[DEBUG] Launching a background thread to watch files ...");
+    watching = true;
+    background_thread = std::thread(&FileWatcher::event_loop, this, timeout);
+  } catch (std::system_error &e) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::SYS_THREAD_FAILED,
+                      "Error: Starting background thread failed. ✗"));
+  }
+  FW_LOG("[DEBUG] Background thread launched successfully. ✓");
+  FW_LOG("[DEBUG] File watcher started successfully. ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> FileWatcher::stop() {
+  if (!watching) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::FILEWATCHER_NOT_RUNNING,
+                      "Error: File watcher not running. ✗"));
+  }
+  watching = false;
+  FW_LOG("[DEBUG] Stopping file watcher...");
+  FW_LOG("[DEBUG] Joining background thread...");
+  if (background_thread.joinable()) {
+    background_thread.join();
+  }
+  FW_LOG("[DEBUG] Background thread joined. ✓");
+  FW_LOG("[DEBUG] File watcher stopped successfully. ✓");
+  return Result<void>::Ok();
+}
+
+Result<vector<string>> FileWatcher::get_watch_list() {
+  lock_guard<mutex> lock(registry_mutex);
+  vector<string> list;
+  for (auto &[wd, path] : watch_registry) {
+    list.push_back(path);
+  }
+  return Result<vector<string>>::Ok(list);
+}
+} // namespace kilket
