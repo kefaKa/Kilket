@@ -144,3 +144,143 @@ UTEST_F(FileWatcherFixture, remove_path_file)
     ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test_file.txt").isOk());
     EXPECT_TRUE(utest_fixture->fw->remove_path("/tmp/fh_test_file.txt").isOk());
 }
+
+// ---------------------------------------------------------------------------
+// LinkEvent
+// ---------------------------------------------------------------------------
+
+UTEST_F(FileWatcherFixture, link_event)
+{
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+}
+UTEST_F(FileWatcherFixture, link_event_twice)
+{
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isErr());
+}
+UTEST_F(FileWatcherFixture, link_invalid_event)
+{
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_CREATE, utest_fixture->cb).isErr());
+}
+UTEST_F(FileWatcherFixture, link_different_events)
+{
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_CLOSE_WRITE, utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MOVED_TO, utest_fixture->cb).isOk());
+}
+UTEST_F(FileWatcherFixture, link_multiple_callbacks_same_event)
+{
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb3).isOk());
+}
+UTEST_F(FileWatcherFixture, link_multiple_callbacks_multiple_events)
+{
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_CLOSE_WRITE, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MOVED_TO, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb3).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_CLOSE_WRITE, utest_fixture->cb3).isOk());
+    EXPECT_TRUE(utest_fixture->fw->link_event(IN_MOVED_TO, utest_fixture->cb3).isOk());
+}
+
+// ---------------------------------------------------------------------------
+// UnlinkEvent
+// ---------------------------------------------------------------------------
+
+UTEST_F(FileWatcherFixture, unlink_event)
+{
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_MODIFY, utest_fixture->cb).isOk());
+}
+UTEST_F(FileWatcherFixture, unlink_event_twice)
+{
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->fw->unlink_event(IN_MODIFY, utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_MODIFY, utest_fixture->cb).isErr());
+}
+UTEST_F(FileWatcherFixture, unlink_invalid_event)
+{
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_CREATE, utest_fixture->cb).isErr());
+}
+UTEST_F(FileWatcherFixture, unlink_never_linked_callback)
+{
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_CLOSE_WRITE, utest_fixture->cb).isErr());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_MOVED_TO, utest_fixture->cb).isErr());
+}
+UTEST_F(FileWatcherFixture, unlink_multiple_callbacks)
+{
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb2).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_CLOSE_WRITE, utest_fixture->cb2).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MOVED_TO, utest_fixture->cb2).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb3).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_CLOSE_WRITE, utest_fixture->cb3).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MOVED_TO, utest_fixture->cb3).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_MODIFY, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_CLOSE_WRITE, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_MOVED_TO, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_MODIFY, utest_fixture->cb3).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_CLOSE_WRITE, utest_fixture->cb3).isOk());
+    EXPECT_TRUE(utest_fixture->fw->unlink_event(IN_MOVED_TO, utest_fixture->cb3).isOk());
+}
+
+// ---------------------------------------------------------------------------
+// GetWatchList
+// ---------------------------------------------------------------------------
+
+UTEST_F(FileWatcherFixture, get_watch_list_empty)
+{
+    EXPECT_TRUE(utest_fixture->fw->get_watch_list().isOk());
+}
+UTEST_F(FileWatcherFixture, get_watch_list_after_add)
+{
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fw->get_watch_list().isOk());
+}
+
+// ---------------------------------------------------------------------------
+// Start / Stop
+// ---------------------------------------------------------------------------
+
+UTEST_F(FileWatcherFixture, start_normal)
+{
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->fw->start(10).isOk());
+}
+UTEST_F(FileWatcherFixture, start_twice)
+{
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->fw->start(10).isOk());
+    EXPECT_TRUE(utest_fixture->fw->start(10).isErr());
+}
+UTEST_F(FileWatcherFixture, stop_normal)
+{
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->fw->start(10).isOk());
+    EXPECT_TRUE(utest_fixture->fw->stop().isOk());
+}
+UTEST_F(FileWatcherFixture, stop_without_start)
+{
+    EXPECT_TRUE(utest_fixture->fw->stop().isErr());
+}
+UTEST_F(FileWatcherFixture, start_with_multiple_paths)
+{
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test1").isOk());
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test2").isOk());
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test3").isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    EXPECT_TRUE(utest_fixture->fw->start(10).isOk());
+}
+UTEST_F(FileWatcherFixture, start_with_multiple_callbacks)
+{
+    ASSERT_TRUE(utest_fixture->fw->add_path("/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MODIFY, utest_fixture->cb2).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_CLOSE_WRITE, utest_fixture->cb2).isOk());
+    ASSERT_TRUE(utest_fixture->fw->link_event(IN_MOVED_TO, utest_fixture->cb2).isOk());
+    EXPECT_TRUE(utest_fixture->fw->start(10).isOk());
+}
+
+UTEST_MAIN()
