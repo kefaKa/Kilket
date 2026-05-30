@@ -48,3 +48,26 @@ namespace kilket
 
     public:
         static Result<FileWatcher *> create();
+
+        ~FileWatcher()
+        {
+            if (inotify_fd != -1)
+                close(inotify_fd);
+        }
+
+        FileWatcher(const FileWatcher &) = delete;
+        FileWatcher &operator=(const FileWatcher &) = delete;
+
+        bool is_running() const { return watching; }
+
+        Result<void> add_path(const std::string &arg);
+        Result<void> remove_path(const std::string &arg);
+
+        Result<void> start(int timeout);
+        Result<void> stop();
+
+        Result<void> link_event(uint32_t event_mask, WatchCallback callback);
+        Result<void> unlink_event(uint32_t event_mask, WatchCallback callback);
+        Result<std::vector<std::string>> get_watch_list();
+    };
+}
