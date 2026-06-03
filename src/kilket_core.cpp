@@ -324,3 +324,175 @@ Result<void> KilketCore::delete_task_command(const std::string &task_id,
   FW_LOG("[DEBUG] Task command deleted: " + task_id + " ✓");
   return Result<void>::Ok();
 }
+
+Result<void> KilketCore::set_task_on_success(const std::string &task_id,
+                                               const std::string &command) {
+  if (task_id.empty() || command.empty()) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::EMPTY_VALUE,
+        "Error: task id and command cannot be empty " + task_id + " ✗ "));
+  }
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->add_on_success(command));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task on success set: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::delete_task_on_success(const std::string &task_id,
+                                                  const std::string &command) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->delete_on_success(command));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task on success deleted: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::set_task_on_failure(const std::string &task_id,
+                                               const std::string &command) {
+  if (task_id.empty() || command.empty()) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::EMPTY_VALUE,
+        "Error: task id and command cannot be empty " + task_id + " ✗ "));
+  }
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->add_on_failure(command));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task on failure set: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::delete_task_on_failure(const std::string &task_id,
+                                                  const std::string &command) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->delete_on_failure(command));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task on failure deleted: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::start_task(const std::string &task_id) {
+  FW_LOG("[DEBUG] Starting task: " + task_id + " ...");
+  FW_LOG("[DEBUG] Looping through tasks to find the correct one ...");
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  FW_LOG("[DEBUG] Task found: " + task_id + " ✓");
+  if (runner->is_running()) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::TASK_ALREADY_RUNNING,
+                      "Error: task already running " + task_id + " ✗"));
+  }
+  FW_LOG("[DEBUG] Starting task_runner...");
+  runner->start();
+  FW_VERBOSE("[KILKET] Task started: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::stop_task(const std::string &task_id) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  FW_LOG("[DEBUG] Stopping task: " + task_id + " ✗");
+  if (!runner->is_running()) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::TASK_NOT_RUNNING,
+                      "Error: task not running " + task_id + " ✗"));
+  }
+  runner->stop();
+  FW_VERBOSE("[KILKET] Task stopped: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::start_all() {
+  if (task_runners.empty()) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::TASK_NOT_FOUND, "Error: no tasks to start ✗"));
+  }
+
+  for (auto *runner : task_runners) {
+    if (runner->is_running()) {
+      return Result<void>::Err(FWError::make(ErrorCode::TASK_ALREADY_RUNNING,
+                                             "Error: task already running ✗"));
+    }
+    FW_LOG("[DEBUG] Starting task: " + runner->get_task_id() + " ...");
+    TEST(runner->start());
+  }
+  FW_VERBOSE("[KILKET] All tasks started ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::stop_all() {
+  if (task_runners.empty()) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::TASK_NOT_FOUND, "Error: no tasks to stop ✗"));
+  }
+
+  for (auto *runner : task_runners) {
+    FW_LOG("[DEBUG] Stopping task " + runner->get_task_id() + " ...");
+    TEST(runner->stop());
+  }
+  FW_VERBOSE("[KILKET] All tasks stopped ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::start_active() {
+  if (task_runners.empty()) {
+    return Result<void>::Err(
+        FWError::make(ErrorCode::TASK_NOT_FOUND, "Error: no tasks to start ✗"));
+  }
+
+  bool found_active = false;
+  for (auto *runner : task_runners) {
+    if (runner->is_active()) {
+      found_active = true;
+      FW_LOG("[DEBUG] Starting task " + runner->get_task_id() + " ...");
+      TEST(runner->start());
+    }
+  }
+  if (!found_active) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: no active tasks to start ✗"));
+  }
+  FW_VERBOSE("[KILKET] All active tasks started ✓");
+  return Result<void>::Ok();
+}
+
+std::vector<Task> KilketCore::get_tasks() const {
+  vector<Task> tasks;
+  for (auto *runner : task_runners) {
+    tasks.push_back(runner->get_task());
+  }
+  return tasks;
+}
+
+Result<vector<string>>
+KilketCore::get_watch_list(const std::string &task_id) {
+  vector<string> watched_paths;
+  for (auto *runner : task_runners) {
+    if (runner->get_task_id() == task_id)
+      watched_paths = TRY(runner->get_watch_list(), vector<string>);
+  }
+  return Result<vector<string>>::Ok(watched_paths);
+}
+} // namespace kilket
