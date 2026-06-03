@@ -166,3 +166,161 @@ Result<void> KilketCore::set_depth(const std::string &task_id, int depth) {
   config_manager->update_task(runner->get_task());
   return Result<void>::Ok();
 }
+
+std::vector<std::string>
+KilketCore::get_resolved_files(const std::string task_id) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr)
+    return std::vector<std::string>();
+  return runner->get_resolved_files();
+}
+
+Result<int> KilketCore::get_task_depth(const std::string &task_id) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<int>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  return Result<int>::Ok(runner->get_task().watching_depth);
+}
+
+Result<bool> KilketCore::is_task_active(const std::string &task_id) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<bool>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  return Result<bool>::Ok(runner->is_active());
+}
+
+Result<void> KilketCore::activate_task(const std::string &task_id) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  runner->activate();
+  config_manager->update_task(runner->get_task());
+  FW_VERBOSE("[KILKET] Task activated: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::deactivate_task(const std::string &task_id) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  runner->deactivate();
+  config_manager->update_task(runner->get_task());
+  FW_VERBOSE("[KILKET] Task deactivated: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::set_task_path(const std::string &task_id,
+                                         const std::string &path) {
+  if (!fs::exists(path)) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::PATH_NOT_FOUND, "Error: path not found " + path + " ✗"));
+  }
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  TEST(runner->add_path(path));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task path set: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::delete_task_path(const std::string &task_id,
+                                            const std::string &path) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  TEST(runner->delete_path(path));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task path deleted: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::set_ignored_path(const std::string &task_id,
+                                            const std::string &path) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  TEST(runner->add_ignored_path(path));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task ignore path set: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::set_ignored_pattern(const std::string &task_id,
+                                               const std::string &pattern) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->add_ignored_pattern(pattern));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task ignore pattern set: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::remove_ignored_path(const std::string &task_id,
+                                               const std::string &path) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗"));
+  }
+  TEST(runner->remove_ignored_path(path));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Ignored path removed: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::remove_ignored_pattern(const std::string &task_id,
+                                                  const std::string &pattern) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->remove_ignored_pattern(pattern));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Ignored pattern removed: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::set_task_command(const std::string &task_id,
+                                            const std::string &command) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->add_command(command));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task command set: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
+
+Result<void> KilketCore::delete_task_command(const std::string &task_id,
+                                               const std::string &command) {
+  TaskRunner *runner = find_task_runner(task_id);
+  if (runner == nullptr) {
+    return Result<void>::Err(FWError::make(
+        ErrorCode::TASK_NOT_FOUND, "Error: task not found " + task_id + " ✗ "));
+  }
+  TEST(runner->delete_command(command));
+  config_manager->update_task(runner->get_task());
+  FW_LOG("[DEBUG] Task command deleted: " + task_id + " ✓");
+  return Result<void>::Ok();
+}
