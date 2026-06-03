@@ -1,0 +1,2 @@
+#pragma once
+#define KILKET_VERSION "@PROJECT_VERSION@"
