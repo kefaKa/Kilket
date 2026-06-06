@@ -228,3 +228,241 @@ UTEST_F(KilketFixture, delete_task_on_failure_empty_command)
 // ----------------------------------------------------------------------------------
 // START / STOP TASK
 // ----------------------------------------------------------------------------------
+
+UTEST_F(KilketFixture, start_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->start_task("/tmp/fh_test").isOk());
+    // For now, we assume that the `start` call on TaskRunner succeeds.
+    // In a real integration test, one might want to verify the task is actually running.
+    // This is a minimal test to cover the KilketCore API.
+    utest_fixture->fh->stop_task("/tmp/fh_test").isOk(); // Clean up
+}
+UTEST_F(KilketFixture, start_task_non_existent)
+{
+    EXPECT_TRUE(utest_fixture->fh->start_task("non_existent_task").isErr());
+}
+UTEST_F(KilketFixture, start_task_twice)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->start_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->start_task("/tmp/fh_test").isErr());
+    utest_fixture->fh->stop_task("/tmp/fh_test").isOk(); // Clean up
+}
+UTEST_F(KilketFixture, stop_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->start_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->stop_task("/tmp/fh_test").isOk());
+}
+UTEST_F(KilketFixture, stop_task_non_existent)
+{
+    EXPECT_TRUE(utest_fixture->fh->stop_task("non_existent_task").isErr());
+}
+UTEST_F(KilketFixture, stop_task_twice)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->start_task("/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->stop_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->stop_task("/tmp/fh_test").isErr()); // TaskRunner::stop() might return error if not running
+}
+
+// ----------------------------------------------------------------------------------
+// ACTIVATE / DEACTIVATE TASK
+// ----------------------------------------------------------------------------------
+
+UTEST_F(KilketFixture, activate_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    auto r = utest_fixture->fh->activate_task("/tmp/fh_test");
+    EXPECT_TRUE(r.isOk());
+    if(r.isErr()) cout << r.getErrMessage() << endl;
+}
+UTEST_F(KilketFixture, activate_task_non_existent)
+{
+    EXPECT_TRUE(utest_fixture->fh->activate_task("non_existent_task").isErr());
+}
+UTEST_F(KilketFixture, activate_task_twice)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test").isOk()); // idempotent
+}
+UTEST_F(KilketFixture, deactivate_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->deactivate_task("/tmp/fh_test").isOk());
+}
+UTEST_F(KilketFixture, deactivate_task_non_existent)
+{
+    EXPECT_TRUE(utest_fixture->fh->deactivate_task("non_existent_task").isErr());
+}
+UTEST_F(KilketFixture, deactivate_task_twice)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->deactivate_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->deactivate_task("/tmp/fh_test").isOk()); // idempotent
+}
+
+// ----------------------------------------------------------------------------------
+// START ALL / STOP ALL / START ACTIVE
+// ----------------------------------------------------------------------------------
+
+UTEST_F(KilketFixture, start_all_no_tasks)
+{
+    EXPECT_TRUE(utest_fixture->fh->start_all().isErr());
+}
+UTEST_F(KilketFixture, start_all_one_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->start_all().isOk());
+    utest_fixture->fh->stop_all().isOk(); // Clean up
+}
+UTEST_F(KilketFixture, start_all_multiple_tasks)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_2", "/tmp/fh_test2").isOk());
+    EXPECT_TRUE(utest_fixture->fh->start_all().isOk());
+    utest_fixture->fh->stop_all().isOk(); // Clean up
+}
+UTEST_F(KilketFixture, stop_all_no_tasks)
+{
+    EXPECT_TRUE(utest_fixture->fh->stop_all().isErr());
+}
+UTEST_F(KilketFixture, stop_all_one_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->start_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->stop_all().isOk());
+}
+UTEST_F(KilketFixture, stop_all_multiple_tasks)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_2", "/tmp/fh_test2").isOk());
+    ASSERT_TRUE(utest_fixture->fh->start_all().isOk());
+    EXPECT_TRUE(utest_fixture->fh->stop_all().isOk());
+}
+
+UTEST_F(KilketFixture, start_active_no_tasks)
+{
+    EXPECT_TRUE(utest_fixture->fh->start_active().isErr()); // idempotent
+}
+UTEST_F(KilketFixture, start_active_no_active_tasks)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->start_active().isErr());
+}
+UTEST_F(KilketFixture, start_active_one_active_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->start_active().isOk());
+    utest_fixture->fh->stop_task("/tmp/fh_test").isOk(); // Clean up
+}
+UTEST_F(KilketFixture, start_active_multiple_active_tasks)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_2", "/tmp/fh_test2").isOk());
+    ASSERT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test2").isOk());
+    EXPECT_TRUE(utest_fixture->fh->start_active().isOk());
+    utest_fixture->fh->stop_all().isOk(); // Clean up
+}
+UTEST_F(KilketFixture, start_active_some_active_some_inactive)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_2", "/tmp/fh_test2").isOk());
+    ASSERT_TRUE(utest_fixture->fh->activate_task("/tmp/fh_test").isOk());
+    // test_task_2 remains inactive
+    EXPECT_TRUE(utest_fixture->fh->start_active().isOk());
+    utest_fixture->fh->stop_task("/tmp/fh_test").isOk(); // Clean up
+}
+
+// ----------------------------------------------------------------------------------
+// GET TASKS
+// ----------------------------------------------------------------------------------
+
+UTEST_F(KilketFixture, get_tasks_empty)
+{
+    std::vector<Task> tasks = utest_fixture->fh->get_tasks();
+    EXPECT_TRUE(tasks.empty());
+}
+
+UTEST_F(KilketFixture, get_tasks_one_task)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    std::vector<Task> tasks = utest_fixture->fh->get_tasks();
+    EXPECT_EQ(tasks.size(), 1);
+    EXPECT_EQ(tasks[0].name, "test_task_1");
+}
+
+UTEST_F(KilketFixture, get_tasks_multiple_tasks)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_2", "/tmp/fh_test2").isOk());
+    std::vector<Task> tasks = utest_fixture->fh->get_tasks();
+    EXPECT_EQ(tasks.size(), 2);
+    // Tasks should be in the order they were created or added to task_runners
+    EXPECT_EQ(tasks[0].id, "/tmp/fh_test");
+    EXPECT_EQ(tasks[1].id, "/tmp/fh_test2");
+}
+
+UTEST_F(KilketFixture, get_tasks_after_deletion)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_1", "/tmp/fh_test").isOk());
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task_2", "/tmp/fh_test2").isOk());
+    ASSERT_TRUE(utest_fixture->fh->delete_task("/tmp/fh_test2").isOk());
+    std::vector<Task> tasks = utest_fixture->fh->get_tasks();
+    EXPECT_EQ(tasks.size(), 1);
+    EXPECT_EQ(tasks[0].id, "/tmp/fh_test");
+}
+
+
+// ----------------------------------------------------------------------------------
+// SET TASK ON SUCCESS / SET TASK ON FAILURE
+// ----------------------------------------------------------------------------------
+
+UTEST_F(KilketFixture, set_task_on_success)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_success("/tmp/fh_test", "ls").isOk());
+}
+UTEST_F(KilketFixture, set_task_on_failure)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_failure("/tmp/fh_test", "ls").isOk());
+}
+UTEST_F(KilketFixture, set_task_on_success_twice)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_success("/tmp/fh_test", "ls").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_success("/tmp/fh_test", "ls").isErr());
+}
+UTEST_F(KilketFixture, set_task_on_failure_twice)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_failure("/tmp/fh_test", "ls").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_failure("/tmp/fh_test", "ls").isErr());
+}
+UTEST_F(KilketFixture, set_empty_task_on_success)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_success("/tmp/fh_test", "").isErr());
+}
+UTEST_F(KilketFixture, set_empty_task_on_failure)
+{
+    ASSERT_TRUE(utest_fixture->fh->create_task("test_task", "/tmp/fh_test").isOk());
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_failure("/tmp/fh_test", "").isErr());
+}
+UTEST_F(KilketFixture, set_task_on_success_nonexistent_task)
+{
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_success("nonexistent_task", "ls").isErr());
+}
+UTEST_F(KilketFixture, set_task_on_failure_nonexistent_task)
+{
+    EXPECT_TRUE(utest_fixture->fh->set_task_on_failure("nonexistent_task", "ls").isErr());
+}
+
+UTEST_MAIN()
