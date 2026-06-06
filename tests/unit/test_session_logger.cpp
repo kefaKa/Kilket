@@ -50,3 +50,54 @@ UTEST_F_TEARDOWN(SessionLoggerFixture)
     delete utest_fixture->er;
     fs::remove_all("/tmp/sl_test");
 }
+
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
+UTEST_F(SessionLoggerFixture, start)
+{
+    EXPECT_TRUE(utest_fixture->sl->start().isOk());
+}
+UTEST_F(SessionLoggerFixture, start_twice)
+{
+    EXPECT_TRUE(utest_fixture->sl->start().isOk());
+    EXPECT_TRUE(utest_fixture->sl->start().isOk()); // idempotent
+}
+
+// ---------------------------------------------------------------------------
+// LogExecution
+// ---------------------------------------------------------------------------
+UTEST_F(SessionLoggerFixture, log_execution)
+{
+    ASSERT_TRUE(utest_fixture->sl->start().isOk());
+    auto r = utest_fixture->sl->log_execution(*utest_fixture->er);
+    EXPECT_TRUE(r.isOk());
+}
+UTEST_F(SessionLoggerFixture, log_execution_no_running)
+{
+    auto r = utest_fixture->sl->log_execution(*utest_fixture->er);
+    EXPECT_TRUE(r.isErr());
+}
+
+// ---------------------------------------------------------------------------
+// Stop
+// ---------------------------------------------------------------------------
+UTEST_F(SessionLoggerFixture, stop)
+{
+    ASSERT_TRUE(utest_fixture->sl->start().isOk());
+    EXPECT_TRUE(utest_fixture->sl->stop().isOk());
+}
+
+UTEST_F(SessionLoggerFixture, stop_without_start)
+{
+    EXPECT_TRUE(utest_fixture->sl->stop().isOk()); // idempotent
+}
+
+UTEST_F(SessionLoggerFixture, stop_twice)
+{
+    ASSERT_TRUE(utest_fixture->sl->start().isOk());
+    EXPECT_TRUE(utest_fixture->sl->stop().isOk());
+    EXPECT_TRUE(utest_fixture->sl->stop().isOk()); // idempotent
+}
+
+UTEST_MAIN()
