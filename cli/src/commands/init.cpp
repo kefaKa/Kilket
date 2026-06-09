@@ -21,3 +21,23 @@ namespace kilket_cli {
 
         init->callback([=]() mutable {
           fs::path cwd = fs::canonical(fs::current_path());
+
+          if (task_name.empty())
+            task_name = cwd.filename().string();
+          std::string n_path = cwd.string();
+
+          auto result = core->create_task(task_name, n_path);
+          if (result.isErr()) {
+            std::cout << "Failed to create task: " << result.getErrMessage() << std::endl;
+            return;
+          }
+          auto p = core->set_task_path(n_path, n_path);
+          if (p.isErr()) {
+            std::cout << "Failed to set task path: " << p.getErrMessage() << std::endl;
+            return;
+          }
+
+          std::cout << "Initialized kilket task in " << n_path << std::endl;
+        });
+    }
+}
