@@ -46,3 +46,62 @@ void register_add(CLI::App *app, kilket::KilketCore *core) {
                 << std::endl;
       return;
     }
+
+    if (!add_n_path.empty()) {
+      auto result = core->set_task_path(task_id, add_n_path);
+      if (result.isErr()) {
+        std::cout << "Failed to set task path: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task path " << add_n_path << " set successfully." << std::endl;
+    }
+    if (!add_command.empty()) {
+      auto result = core->set_task_command(task_id, add_command);
+      if (result.isErr()) {
+        std::cout << "Failed to set task command: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task command " << add_command << " set successfully." << std::endl;
+    }
+    if (!command_on_success.empty()) {
+      auto result = core->set_task_on_success(task_id, command_on_success);
+      if (result.isErr()) {
+        std::cout << "Failed to set task on success: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task on success command " << command_on_success << " set successfully." << std::endl;
+    }
+    if (!command_on_failure.empty()) {
+      auto result = core->set_task_on_failure(task_id, command_on_failure);
+      if (result.isErr()) {
+        std::cout << "Failed to set task on failure: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task on failure command " << command_on_failure << " set successfully." << std::endl;
+    }
+    if (!ignored_path.empty()) {
+      auto result = core->set_ignored_path(task_id, ignored_path);
+      if (result.isErr()) {
+        std::cout << "Failed to set ignored path: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Ignored path " << ignored_path << " set successfully." << std::endl;
+    }
+    if (!ignored_pattern.empty()) {
+      auto result = core->set_ignored_pattern(task_id, ignored_pattern);
+      if (result.isErr()) {
+        std::cout << "Failed to set ignored pattern: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Ignored pattern " << ignored_pattern << " set successfully." << std::endl;
+    }
+  });
+}
+
+}
