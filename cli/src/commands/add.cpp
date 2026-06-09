@@ -34,3 +34,15 @@ void register_add(CLI::App *app, kilket::KilketCore *core) {
                   "Command to run on failure [optional] \n// if not provided, no command will be run on failure\n");
   add->add_option("--ignored-path", ignored_path, "Ignored path [optional] \n// if not provided, all files will be watched in the working directory\n");
   add->add_option("--ignored-pattern", ignored_pattern, "Ignored pattern [optional] \n// if not provided, no pattern will be ignored in the working directory\n");
+
+  add->callback([=]() mutable {
+    fs::path cwd = fs::current_path();
+    task_id = cwd.string();
+
+    if (add_n_path.empty() && add_command.empty() &&
+        command_on_success.empty() && command_on_failure.empty() &&
+        ignored_path.empty() && ignored_pattern.empty()) {
+      std::cout << "Error: At least one of --path, --command, --on-success, --on-failure, --ignored-path, or --ignored-pattern is required\n"
+                << std::endl;
+      return;
+    }
