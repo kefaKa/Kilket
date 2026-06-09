@@ -41,3 +41,55 @@ fs::path get_home_directory() {
     if (userProfile) {
         return fs::path(userProfile);
     }
+
+    // Fallback for older Windows environments
+    const char* homeDrive = std::getenv("HOMEDRIVE");
+    const char* homePath = std::getenv("HOMEPATH");
+    if (homeDrive && homePath) {
+        return fs::path(homeDrive) / homePath;
+    }
+#else
+    // Linux, WSL, macOS, and other UNIX-like systems
+    const char* home = std::getenv("HOME");
+    if (home) {
+        return fs::path(home);
+    }
+#endif
+
+    // Return an empty path if nothing was found
+    return fs::path();
+}
+
+int main(int argc, char **argv) {
+    signal(SIGINT, handle_sigint);
+
+  for (int i = 1; i < argc; i++)
+  {
+      if (std::string(argv[i]) == "--debug")
+      {
+          KILKET_DEBUG = true;
+          KILKET_VERBOSE = true;
+      }
+      if (std::string(argv[i]) == "--verbose")
+          KILKET_VERBOSE = true;
+
+      if (std::string(argv[i]) == "--quiet")
+          KILKET_QUIET = true;
+
+      if (std::string(argv[i]) == "--version")
+      {
+          std::cout << "Kilket version " << KILKET_VERSION << std::endl;
+          return 0;
+      }
+  }
+
+  auto core_result = KilketCore::create();
+  if (core_result.isErr()) {
+      if(core_result.getErrCode() == ErrorCode::CONFIG_PARSE_FAILED)
+      {
+          std::cerr << "Config file is corrupted." << std::endl;
+          fs::path config_path = get_home_directory() / ".config" / "kilket"/ "config.json";
+          std::cout << "Path : " << config_path << std::endl;
+          std::cerr << "Options: " << std::endl;
+          std::cout << " [1] clear all data and start fresh" << std::endl;
+          std::cout << " [2] exit and fix manually" << std::endl;
