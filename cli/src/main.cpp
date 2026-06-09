@@ -93,3 +93,46 @@ int main(int argc, char **argv) {
           std::cerr << "Options: " << std::endl;
           std::cout << " [1] clear all data and start fresh" << std::endl;
           std::cout << " [2] exit and fix manually" << std::endl;
+
+          std::cout << "Enter your choice: ";
+          int choice;
+          std::cin >> choice;
+          if (choice == 1)
+          {
+              fs::remove(config_path);
+              std::cout << "Config file cleared. Starting fresh..." << std::endl;
+              return 0;
+          }
+          else if (choice == 2)
+              return 1;
+          else
+              std::cerr << "Invalid choice." << std::endl;
+          return 1;
+      }
+      else
+      {
+          std::cerr << "Failed to create Kilket instance: " << core_result.getErrMessage()
+              << std::endl;
+          return 1;
+      }
+  }
+  core = core_result.unwrap();
+
+  CLI::App app{"Kilket"};
+  app.require_subcommand(0, 1);
+
+  bool version_flag = false;
+  app.add_flag("--version", version_flag, "Print version information");
+
+  kilket_cli::register_init(&app, core);
+  kilket_cli::register_add(&app, core);
+  kilket_cli::register_run(&app, core);
+  kilket_cli::register_list(&app, core);
+  kilket_cli::register_remove(&app, core);
+  kilket_cli::register_set(&app, core);
+  kilket_cli::register_check(&app, core);
+
+  CLI11_PARSE(app, argc, argv);
+  delete core;
+  return 0;
+}
