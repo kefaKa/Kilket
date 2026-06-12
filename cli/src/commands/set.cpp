@@ -27,3 +27,34 @@ namespace kilket_cli {
 
         set->callback([=]() mutable {
           std::string set_task_id = fs::current_path().string();
+
+          if (active) {
+            auto result = core->activate_task(set_task_id);
+            if (result.isErr()) {
+              std::cout << "Failed to set task as active: " << result.getErrMessage()
+                        << std::endl;
+              return;
+            }
+            std::cout << "Task " << set_task_id << " is now active" << std::endl;
+          }
+          if(deactive) {
+              auto result = core->deactivate_task(set_task_id);
+              if (result.isErr()) {
+                std::cout << "Failed to set task as deactive: " << result.getErrMessage()
+                          << std::endl;
+                return;
+              }
+              std::cout << "Task " << set_task_id << " is now deactive" << std::endl;
+          }
+          if(depth != INT_MIN) {
+            auto result = core->set_depth(set_task_id, depth);
+            if (result.isErr()) {
+              std::cout << "Failed to set depth: " << result.getErrMessage()
+                        << std::endl;
+              return;
+            }
+            std::cout << "Depth set to " << depth << std::endl;
+          }
+        });
+    }
+}
