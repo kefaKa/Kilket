@@ -68,3 +68,63 @@ void register_remove(CLI::App *app, kilket::KilketCore *core) {
         }
         return;
     }
+
+    if (!removed_path.empty()) {
+      auto result = core->delete_task_path(task_id, removed_path);
+      if (result.isErr()) {
+        std::cerr << "Failed to removed task path: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task path " << removed_path << " removed successfully." << std::endl;
+    }
+
+    if (!removed_command.empty()) {
+      auto result = core->delete_task_command(task_id, removed_command);
+      if (result.isErr()) {
+        std::cerr << "Failed to removed task command: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task command " << removed_command << " removed successfully." << std::endl;
+    }
+    if (!command_on_success.empty()) {
+      auto result = core->delete_task_on_success(task_id, command_on_success);
+      if (result.isErr()) {
+        std::cerr << "Failed to remove task on success: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task on success command " << command_on_success << " removed successfully." << std::endl;
+    }
+    if (!command_on_failure.empty()) {
+      auto result = core->delete_task_on_failure(task_id, command_on_failure);
+      if (result.isErr()) {
+        std::cerr << "Failed to remove task on failure: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Task on failure command " << command_on_failure << "removed successfully." << std::endl;
+    }
+    if (!ignored_path.empty()) {
+      auto result = core->remove_ignored_path(task_id, ignored_path);
+      if (result.isErr()) {
+        std::cerr << "Failed to remove ignored path: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Ignored path " << ignored_path << " removed successfully." << std::endl;
+    }
+    if (!ignored_pattern.empty()) {
+      auto result = core->remove_ignored_pattern(task_id, ignored_pattern);
+      if (result.isErr()) {
+        std::cerr << "Failed to remove ignored pattern: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      std::cout << "Ignored pattern " << ignored_pattern << " removed successfully." << std::endl;
+    }
+  });
+}
+
+} // namespace kilket_cli
