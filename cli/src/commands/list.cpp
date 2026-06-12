@@ -65,3 +65,67 @@ namespace kilket_cli {
                 for(const auto& path : matching_task->file_paths) {
                     std::cout << " " << path << std::endl;
                 }
+
+                std::cout << "All Currently Watched Files:\n" << std::endl;
+                for(const auto& path : core->get_resolved_files(matching_task->id)) {
+                    std::cout << " " << path << std::endl;
+                }
+
+            }
+
+            if (list_commands) {
+                if(matching_task == nullptr) {
+                    std::cout << "Error: No kilket task found for the current directory." << std::endl;
+                    return;
+                }
+
+                std::cout << "\nCommands:\n" << std::endl;
+                for(const auto& command : matching_task->commands) {
+                    std::cout << " " << command << std::endl;
+                }
+            }
+
+            if (list_ignored) {
+                if(matching_task == nullptr) {
+                    std::cout << "Error: No kilket task found for the current directory." << std::endl;
+                    return;
+                }
+
+                std::cout << "\nIgnored paths:\n" << std::endl;
+                for(const auto& ignored_paths : matching_task->ignored_paths) {
+                    std::cout << " " << ignored_paths << std::endl;
+                }
+                std::cout << "\nIgnored patterns:\n" << std::endl;
+                for(const auto& ignored_pattern : matching_task->ignored_patterns) {
+                    std::cout << " " << ignored_pattern << std::endl;
+                }
+            }
+
+            if (list_on_success) {
+                if(matching_task == nullptr) {
+                    std::cerr << "Error: No kilket task found for the current directory." << std::endl;
+                    return;
+                }
+
+                std::cout << "\nOn success:\n" << std::endl;
+                for(const auto& command : matching_task->on_success) {
+                    std::cout << " " << command << std::endl;
+                }
+                std::cout << std::endl;
+            }
+
+            if (list_on_failure) {
+                if(matching_task == nullptr) {
+                    std::cerr << "Error: No kilket task found for the current directory." << std::endl;
+                    return;
+                }
+
+                std::cout << "\nOn failure:\n" << std::endl;
+                for(const auto& command : matching_task->on_failure) {
+                    std::cout << " " << command << std::endl;
+                }
+                std::cout << std::endl;
+            }
+        });
+    }
+}
