@@ -20,3 +20,12 @@ void register_run(CLI::App *app, kilket::KilketCore *core) {
                 "Enable verbose output. \n// shows a summary of the process.");
   run->add_flag("--quiet", KILKET_QUIET,
                 "Removes build output from terminal");
+
+  static bool run_all = false;
+  run->add_flag("--all", run_all, "Run all task instances labeled as active.");
+
+  static bool run_active = false;
+  run->add_flag("--active", run_active, "Run active task instances");
+
+  run->callback([=]() mutable {
+    std::string run_task_id = fs::current_path().string();
