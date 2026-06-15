@@ -29,3 +29,33 @@ void register_run(CLI::App *app, kilket::KilketCore *core) {
 
   run->callback([=]() mutable {
     std::string run_task_id = fs::current_path().string();
+
+    if (run_all) {
+      auto result = core->start_all();
+      if (result.isErr()) {
+        std::cout << "Failed to run all tasks: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      pause();
+    } else if (run_active) {
+      auto result = core->start_active();
+      if (result.isErr()) {
+        std::cout << "Failed to run active tasks: " << result.getErrMessage()
+                  << std::endl;
+        return;
+      }
+      pause();
+    } else if (!run_task_id.empty()) {
+      auto result = core->start_task(run_task_id);
+      if (result.isErr()) {
+        std::cout << "Failed to run task: " << result.getErrMessage() << std::endl;
+        return;
+      }
+    }
+    std::cout << "Watching " << run_task_id
+              << "  (use --quiet to suppress build output, press Ctrl+C to stop)" << std::endl;
+    pause();
+  });
+}
+} // namespace kilket_cli
