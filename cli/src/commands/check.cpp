@@ -35,3 +35,42 @@ namespace kilket_cli {
                   return;
               }
           }
+
+          if (active) {
+            auto result = core->is_task_active(check_task_id);
+            if (result.isErr()) {
+              std::cout << "Failed to check if task is active: " << result.getErrMessage()
+                        << std::endl;
+              return;
+            }
+            if (result.unwrap()) {
+              std::cout << "Task " << check_task_id << " is active" << std::endl;
+            } else {
+              std::cout << "Task " << check_task_id << " is not active" << std::endl;
+            }
+          }
+          if(deactive) {
+              auto result = core->is_task_active(check_task_id);
+              if (result.isErr()) {
+                std::cout << "Failed to check if task is deactive: " << result.getErrMessage()
+                          << std::endl;
+                return;
+              }
+              if (result.unwrap()) {
+                std::cout << "Task " << check_task_id << " is not deactive" << std::endl;
+              } else {
+                std::cout << "Task " << check_task_id << " is deactive" << std::endl;
+              }
+          }
+          if(depth) {
+            auto result = core->get_task_depth(check_task_id);
+            if (result.isErr()) {
+              std::cout << "Failed to check task depth: " << result.getErrMessage()
+                        << std::endl;
+              return;
+            }
+            std::cout << "Task depth is " << result.unwrap() << std::endl;
+          }
+        });
+    }
+}
