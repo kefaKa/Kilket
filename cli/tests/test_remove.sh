@@ -79,3 +79,84 @@ test_remove_on_failure_removes_from_list() {
   out=$(kilket list --on-failure 2>&1)
   assert_not_contains "$out" "echo failure" "remove --on-failure removes it from list --on-failure"
 }
+
+test_remove_nonexistent_on_failure_errors() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local out
+  out=$(kilket remove --on-failure "nonexistent" 2>&1)
+  assert_contains "$out" "Error:" "removing on-failure never added errors"
+}
+
+# --- remove --ignored-path ---
+
+test_remove_ignored_path_removes_from_list() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --ignored-path "myignoredpath" >/dev/null 2>&1
+  kilket remove --ignored-path "myignoredpath" >/dev/null 2>&1
+  local out
+  out=$(kilket list --ignored 2>&1)
+  assert_not_contains "$out" "myignoredpath" "remove --ignored-path removes it from list --ignored"
+}
+
+test_remove_nonexistent_ignored_path_errors() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local out
+  out=$(kilket remove --ignored-path "nonexistent" 2>&1)
+  assert_contains "$out" "Error:" "removing ignored-path never added errors"
+}
+
+# --- remove --ignored-pattern ---
+
+test_remove_ignored_pattern_removes_from_list() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --ignored-pattern "*.jpeg" >/dev/null 2>&1
+  kilket remove --ignored-pattern "*.jpeg" >/dev/null 2>&1
+  local out
+  out=$(kilket list --ignored 2>&1)
+  assert_not_contains "$out" "*.jpeg" "remove --ignored-pattern removes it from list --ignored"
+}
+
+test_remove_nonexistent_ignored_pattern_errors() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local out
+  out=$(kilket remove --ignored-pattern "*.nonexistent" 2>&1)
+  assert_contains "$out" "Error:" "removing ignored-pattern never added errors"
+}
+
+test_remove_whole_task_with_force_flag() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket remove -f >/dev/null 2>&1
+  local out
+  out=$(kilket list --tasks 2>&1)
+  local task_dir
+  task_dir=$(pwd)
+  assert_not_contains "$out" "$task_dir" "remove -f deletes the whole task"
+}
+
+test_remove_whole_task_confirm_yes_deletes() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local task_dir
+  task_dir=$(pwd)
+  echo "yes" | kilket remove >/dev/null 2>&1
+  local out
+  out=$(kilket list --tasks 2>&1)
+  assert_not_contains "$out" "$task_dir" "remove with 'yes' confirmation deletes the task"
+}
+
+test_remove_whole_task_decline_keeps_task() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local task_dir
+  task_dir=$(pwd)
+  echo "no" | kilket remove >/dev/null 2>&1
+  local out
+  out=$(kilket list --tasks 2>&1)
+  assert_contains "$out" "$task_dir" "remove declining confirmation keeps the task"
+}
