@@ -36,3 +36,30 @@ test_list_tasks_works_without_init_in_cwd() {
   out=$(kilket list --tasks 2>&1)
   assert_contains "$out" "$task_dir" "list --tasks shows tasks regardless of cwd"
 }
+
+test_list_paths_fails_without_init_in_cwd() {
+  fresh_dir
+  # no init at all in this fresh dir
+  local out
+  out=$(kilket list --paths --commands 2>&1)
+  assert_contains "$out" "Error: No kilket task found" "list --paths/--commands errors when cwd has no task"
+}
+
+test_list_ignored_shows_defaults() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local out
+  out=$(kilket list --ignored 2>&1)
+  assert_contains "$out" ".git" "list --ignored shows default ignores even with no user additions"
+}
+
+test_list_combined_flags_when_initialized() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  mkdir -p combo
+  kilket add --path ./combo --command "echo combo" >/dev/null 2>&1
+  local out
+  out=$(kilket list --paths --commands 2>&1)
+  assert_contains "$out" "combo" "combined list flags: path shown"
+  assert_contains "$out" "echo combo" "combined list flags: command shown"
+}
