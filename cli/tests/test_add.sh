@@ -96,3 +96,95 @@ test_add_duplicate_ignored_pattern_fails() {
   out=$(kilket add --ignored-pattern "*.o" 2>&1)
   assert_contains "$out" "Error:" "adding the same ignored-pattern twice errors"
 }
+
+# --- ignore-before-add interaction ---
+# A directory ignored by name should not appear in list --paths once added,
+# since add_path should respect already-registered ignores.
+
+test_ignored_path_prevents_add_from_listing() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  mkdir -p ignoreme
+  kilket add --ignored-path ignoreme >/dev/null 2>&1
+  kilket add --path ./ignoreme >/dev/null 2>&1
+  local out
+  out=$(kilket list --paths 2>&1)
+  assert_not_contains "$out" "ignoreme" "ignored path should not appear in list --paths"
+}
+
+# --- add --on-success ---
+
+test_add_on_success_appears_in_list() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --on-success "echo success" >/dev/null 2>&1
+  local out
+  out=$(kilket list --on-success 2>&1)
+  assert_contains "$out" "echo success" "add --on-success shows up in list --on-success"
+}
+
+test_add_duplicate_on_success_no_duplicate() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --on-success "echo success" >/dev/null 2>&1
+  kilket add --on-success "echo success" >/dev/null 2>&1
+  local out count
+  out=$(kilket list --on-success 2>&1)
+  count=$(grep -o "echo success" <<< "$out" | wc -l)
+  assert_exit 1 "$count" "adding the same on-success command twice does not duplicate"
+}
+
+# --- add --on-failure ---
+
+test_add_on_failure_appears_in_list() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --on-failure "echo failure" >/dev/null 2>&1
+  local out
+  out=$(kilket list --on-failure 2>&1)
+  assert_contains "$out" "echo failure" "add --on-failure shows up in list --on-failure"
+}
+
+test_add_duplicate_on_failure_no_duplicate() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --on-failure "echo failure" >/dev/null 2>&1
+  kilket add --on-failure "echo failure" >/dev/null 2>&1
+  local out count
+  out=$(kilket list --on-failure 2>&1)
+  count=$(grep -o "echo failure" <<< "$out" | wc -l)
+  assert_exit 1 "$count" "adding the same on-failure command twice does not duplicate"
+}
+
+# add with no flags at all
+test_add_with_no_flags() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local out
+  out=$(kilket add 2>&1)
+  assert_contains "$out" "Error:" "add with no flags errors"
+}
+
+# add --command with an empty
+test_add_empty_command() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  local out
+  out=$(kilket add --command "" 2>&1)
+  assert_contains "$out" "Error:" "add --command empty string errors"
+}
+
+# multiple flags in one add call — path + command + ignored-pattern together
+test_add_multiple_flags_at_once() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  mkdir -p combo
+  kilket add --path ./combo --command "echo combo" --ignored-pattern "*.tmp" >/dev/null 2>&1
+  local out
+  out=$(kilket list --paths 2>&1)
+  assert_contains "$out" "combo" "multi-flag add: path registered"
+  out=$(kilket list --commands 2>&1)
+  assert_contains "$out" "echo combo" "multi-flag add: command registered"
+  out=$(kilket list --ignored 2>&1)
+  assert_contains "$out" "*.tmp" "multi-flag add: ignored-pattern registered"
+}
