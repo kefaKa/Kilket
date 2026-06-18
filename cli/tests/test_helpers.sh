@@ -25,3 +25,22 @@ assert_contains() {
     echo "  actual output: $haystack"
   fi
 }
+
+assert_not_contains() {
+  local haystack="$1" needle="$2" desc="$3"
+  if [[ "$haystack" != *"$needle"* ]]; then
+    PASS=$((PASS+1))
+  else
+    FAIL=$((FAIL+1))
+    echo "FAIL: $desc (output should NOT contain: $needle)"
+    echo "  actual output: $haystack"
+  fi
+}
+
+fresh_dir() {
+  local d
+  d=$(mktemp -d)
+  export KILKET_CONFIG_DIR_TEST="$d/config"
+  mkdir -p "$KILKET_CONFIG_DIR_TEST"
+  cd "$d" || exit 1
+}
