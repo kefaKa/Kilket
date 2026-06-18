@@ -55,3 +55,62 @@ test_run_all_starts_and_exits_on_sigint() {
   sleep 1
   kill -INT "$pid"
   wait "$pid" 2>/dev/null
+
+  local out
+  out=$(cat "$outfile")
+  assert_contains "$out" "Exiting safely" "run --all exits cleanly on SIGINT"
+  rm -f "$outfile"
+}
+
+test_run_active_with_no_active_tasks_errors() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --command "echo hi" >/dev/null 2>&1
+  # never set --active
+
+  local out code
+  out=$(kilket run --active 2>&1)
+  code=$?
+  assert_contains "$out" "Error: no active tasks to start" "run --active with no active tasks errors"
+}
+
+test_run_active_with_active_task_starts_and_exits() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --command "echo hi" >/dev/null 2>&1
+  kilket set --active >/dev/null 2>&1
+
+  local outfile
+  outfile=$(mktemp)
+
+  kilket run --active > "$outfile" 2>&1 &
+  local pid=$!
+
+  sleep 1
+  kill -INT "$pid"
+  wait "$pid" 2>/dev/null
+
+  local out
+  out=$(cat "$outfile")
+  assert_contains "$out" "Exiting safely" "run --active with an active task exits cleanly on SIGINT"
+  rm -f "$outfile"
+}
+
+test_run_quiet_suppresses_command_output() {
+  fresh_dir
+  kilket init >/dev/null 2>&1
+  kilket add --command "echo SHOULD_NOT_APPEAR" >/dev/null 2>&1
+
+  local outfile
+  outfile=$(mktemp)
+  kilket run --quiet > "$outfile" 2>&1 &
+  local pid=$!
+  sleep 1
+  kill -INT "$pid"
+  wait "$pid" 2>/dev/null
+
+  local out
+  out=$(cat "$outfile")
+  assert_not_contains "$out" "SHOULD_NOT_APPEAR" "run --quiet suppresses build output"
+  rm -f "$outfile"
+}
