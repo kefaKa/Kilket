@@ -71,3 +71,80 @@ cd Kilket
 ```Bash
 mkdir build && cd build
 ```
+
+3. Generate an optimized Release build configuration
+```Bash
+cmake -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release ..
+```
+4. Compile the binary using all available CPU cores(to save some of your time😅)
+```Bash
+make -j$(nproc)
+```
+5. Install system-wide to `/usr/local/bin`
+```Bash
+sudo make install
+```
+
+#### Verifying the Installation
+
+To verify the installation, run `kilket --version` and ensure it outputs the version number.
+
+## Command Reference & Usage
+
+Kilket provides a Git-like subcommand interface to seamlessly configure, track, and monitor your development pipelines.
+
+### Quick Start Workflow
+
+1. Initialize a new Kilket environment in your project root
+```bash
+kilket init
+```
+2. Add your execution bounds and build/test targets
+```bash
+kilket add --command "make" --on-success "./run_tests" --on-failure "echo 'Fix the build!'"
+```
+3. Prevent heavy transient directories from overloading tracking tables
+```bash
+kilket add --ignored-path "build/" --ignored-pattern "*.o"
+```
+4. Spin up the background thread filewatcher engine
+```bash
+kilket run
+```
+
+### Global Flags
+These flags can be appended to the base kilket command from anywhere:
+
+`-h`, `--help` — Displays structural help layouts and options for any command or subcommand.
+
+`--version` — Prints the active engine version layout (0.0.0) and immediately exits.
+
+`--verbose` — Enables verbose logging output.
+
+### Subcommands
+
+*Tip: Use `kilket --help <subcommand>` to see detailed usage and options for each subcommand.
+
+#### 1. init
+Initializes a kilket instance in your current directory and registers it inside a config.json file under `$HOME/.config/kilket/config.json`.
+
+Usage: `kilket init`
+
+Options: 
+  `--task TEXT`[OPTIONAL] — enables you to name your kilket instance a unique name. If not provided the filename of your current directory will be taken as name. 
+
+#### 2. add
+
+Usage: `kilket add [options]`
+
+Options:
+
+`--command "<cmd>"` — The base target compilation or execution string to trigger on file change.
+
+`--on-success "<cmd>"` — Hook execution path to fork immediately if the base target command returns exit code 0.
+
+`--on-failure "<cmd>"` — Hook execution path to fork immediately if the base target command returns a non-zero exit code.
+
+`--ignored-path "<path>"` — Tells the internal filewatcher module to explicitly skip registering inotify bounds on this directory.
+
+`--ignored-pattern "<glob>"` — Skips filing tracking updates for files matching specific extensions (e.g., *.tmp, *.o).
