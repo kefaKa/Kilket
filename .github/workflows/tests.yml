@@ -26,3 +26,17 @@ jobs:
 
             - name: Configure
               run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+
+            - name: Build
+              run: cmake --build build
+
+            - name: Run tests
+              run: cd build && ./test_config_manager && ./test_task_runner && ./test_session_logger && ./test_kilket_core
+
+            - name: Install kilket binary
+              run: |
+                  sudo cmake --install build
+                  which kilket || echo "kilket not found after install"
+
+            - name: Run CLI tests
+              run: bash cli/tests/test_cli.sh
