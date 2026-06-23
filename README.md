@@ -148,3 +148,78 @@ Options:
 `--ignored-path "<path>"` — Tells the internal filewatcher module to explicitly skip registering inotify bounds on this directory.
 
 `--ignored-pattern "<glob>"` — Skips filing tracking updates for files matching specific extensions (e.g., *.tmp, *.o).
+
+#### 3. list
+Dumps an immediate structural breakdown of the currently registered configuration data into your terminal.
+
+Usage: `kilket list [options]`
+
+Flags:
+
+  `--tasks` — lists all registered tasks and their associated paths in your machine.
+  
+  `--paths` — lists all registered paths and watched paths in the working directory.
+
+  `--commands` — lists all build commands registered in the current directory.
+
+  `--ignored` — lists all ignored paths and patterns in the current directory.
+
+  `--on-success` — lists all on success commands to run in the current directory.
+
+  `--on-failure` — lists all on failure commands to run in the current directory.
+
+#### 4. remove
+Drops a specified path boundary, target match pattern, or hook configuration from the active registry.
+
+Usage: `kilket remove [options]`
+
+Options:
+
+`-f` — Bypasses structural verification checks to force immediate state eviction.
+
+#### 5. set
+Tweaks global engine performance constants and environmental execution behaviors.
+
+Usage: `kilket set [options]`
+
+Options:
+
+`--depth <int>` — Adjusts recursive folder watch limits. Accepts integers mapping from 0 (shallow directory tracking) up to 10.
+
+Flag:
+
+ `--active` — sets the the initialized task in the current directory as active. This enables you to watch for only tasks labeled as active later using the command `kilket run --active`
+
+#### 6. check
+It checks for the status set by the `set` command.
+
+Usage: `kilket check`
+Options: 
+  `--depth`  - Adjusts recursive folder watch limits.
+  `--active`  - checks if current kilket instance in the current working directory is labeled active.
+  `--deactive`  - checks if current kilket instance in the current working directory is labeled deactive.
+
+#### 7. run
+Spins up the underlying filewatcher background-thread, mounts native kernel inotify tracking hooks across the working directory, and starts orchestrating loops.
+
+Usage: `kilket run`
+
+Flags:
+
+ `--quiet` — Silences non-essential lifecycle output streams, funneling thread-safe logs strictly to background buffers instead of flooding stdout.
+
+ `--all` - Runs all registered tasks across the entire machine.
+ `--active` - Runs all tasks that are labeled as active.
+
+Your complete layout is officially complete.
+
+## Author
+
+Kefa Kassahun - aspiring systems engineer
+
+## Used 
+
+- [nlohmann/json library](https://github.com/nlohmann/json)
+- [CLI11 library](https://github.com/CLIUtils/CLI11)
+
+```
