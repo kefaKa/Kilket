@@ -69,3 +69,4 @@ target_include_directories(kilket PRIVATE cli/src)
 target_include_directories(kilket PRIVATE cli/src ${CMAKE_CURRENT_BINARY_DIR})
 
 install(TARGETS kilket DESTINATION bin)
+# --
