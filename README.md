@@ -22,9 +22,9 @@
 
 ### Introduction
 
-Kilket is an open-source CLI tool that can automate build processes by watching filesystem events and executing build commands automatically. It is designed to be simple, efficient, and easy to use. It enables you to define your build commands using a simple CLI interface. It supports multiple build commands. And it also enables you to hook other set of commands to be triggered after a successful build or a failed build.
+Kilket is an open-source CLI tool that automates your build process by watching for filesystem changes and running your build commands for you. It's built to be simple, efficient, and easy to use, letting you define one or more build commands through a straightforward CLI interface. You can also hook in additional commands to run automatically after a build succeeds or fails.
 
-It can watch your directory for changes and execute build commands automatically when changes are detected.
+Point it at a directory, and Kilket watches for changes and triggers your build commands as soon as they're detected.
 
 ### Why Kilket?
 
@@ -76,7 +76,7 @@ mkdir build && cd build
 ```Bash
 cmake -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release ..
 ```
-4. Compile the binary using all available CPU cores(to save some of your time😅)
+4. Compile the binary using all available CPU cores(to save some of your time)
 ```Bash
 make -j$(nproc)
 ```
